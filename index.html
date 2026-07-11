@@ -129,8 +129,6 @@
                     <li><a href="#contacto">Contacto</a></li>
                     <li><a href="#como-comprar">¿Cómo Comprar?</a></li>
                     <li><a href="#testimonios">Ustedes</a></li>
-                    <li><a href="privacidad.html">Política de Privacidad</a></li>
-                    <li><a href="terminos.html">Términos y Condiciones</a></li>
                 </ul>
             </li>
 
@@ -1201,6 +1199,7 @@
                 actualizarContadorCarrito();
                 renderizarCarrito();
                 localStorage.removeItem(CLAVE_CARRITO_LOCAL);
+                localStorage.removeItem(CLAVE_CARRITO_UID);
             }
             uidCarritoActual = null;
 
@@ -1401,6 +1400,10 @@
     // no pierda su pedido si recarga la página o cierra la pestaña.
     // Cada producto se guarda como: { nombre, precio, cantidad }
     const CLAVE_CARRITO_LOCAL = "chrisnut_carrito";
+    // Guarda a qué cuenta pertenece el carrito que ya está guardado en este
+    // dispositivo, para no volver a fusionarlo (sumando cantidades) cada vez
+    // que se recarga la página estando ya con sesión iniciada.
+    const CLAVE_CARRITO_UID = "chrisnut_carrito_uid";
 
     function guardarCarritoLocal() {
         try {
@@ -1410,11 +1413,29 @@
         }
     }
 
+    // Red de seguridad: por más que algo vuelva a duplicar cantidades por
+    // error, esto evita que un carrito quede con números absurdos (miles de
+    // unidades de un mismo producto). Cualquier cantidad fuera de rango
+    // razonable se recorta a un máximo, y se descartan entradas inválidas.
+    const CANTIDAD_MAXIMA_RAZONABLE = 30;
+    function sanearCarrito(lista) {
+        if (!Array.isArray(lista)) return [];
+        return lista
+            .filter(item => item && typeof item.nombre === "string" && item.nombre.trim() !== "")
+            .map(item => {
+                const cantidadNumerica = parseInt(item.cantidad, 10);
+                const cantidadSegura = Number.isFinite(cantidadNumerica)
+                    ? Math.min(Math.max(cantidadNumerica, 1), CANTIDAD_MAXIMA_RAZONABLE)
+                    : 1;
+                return { ...item, cantidad: cantidadSegura };
+            });
+    }
+
     function cargarCarritoLocalInicial() {
         try {
             const guardado = localStorage.getItem(CLAVE_CARRITO_LOCAL);
             const items = guardado ? JSON.parse(guardado) : [];
-            return Array.isArray(items) ? items : [];
+            return sanearCarrito(items);
         } catch (error) {
             console.error("Error al leer el carrito guardado en este dispositivo: ", error);
             return [];
@@ -1446,15 +1467,30 @@
             const doc = await db.collection("carritos").doc(uid).get();
             const carritoGuardado = (doc.exists && Array.isArray(doc.data().items)) ? doc.data().items : [];
 
-            carritoGuardado.forEach((itemGuardado) => {
-                const existente = carrito.find(item => item.nombre === itemGuardado.nombre);
-                if (existente) {
-                    existente.cantidad += itemGuardado.cantidad;
-                } else {
-                    carrito.push({ ...itemGuardado });
-                }
-            });
+            // Si el carrito que ya está en este dispositivo es el de esta
+            // misma cuenta (por ejemplo, se recargó la página estando ya
+            // con sesión iniciada), NO lo fusionamos de nuevo: eso sumaría
+            // las mismas cantidades una y otra vez en cada recarga. En ese
+            // caso simplemente traemos la versión más reciente guardada en
+            // la nube. Solo fusionamos cuando el carrito local es "nuevo"
+            // para esta cuenta (invitado que recién inició sesión).
+            const carritoYaEraDeEstaCuenta = localStorage.getItem(CLAVE_CARRITO_UID) === uid;
 
+            if (carritoYaEraDeEstaCuenta) {
+                carrito = carritoGuardado.map(item => ({ ...item }));
+            } else {
+                carritoGuardado.forEach((itemGuardado) => {
+                    const existente = carrito.find(item => item.nombre === itemGuardado.nombre);
+                    if (existente) {
+                        existente.cantidad += itemGuardado.cantidad;
+                    } else {
+                        carrito.push({ ...itemGuardado });
+                    }
+                });
+            }
+
+            carrito = sanearCarrito(carrito);
+            localStorage.setItem(CLAVE_CARRITO_UID, uid);
             actualizarContadorCarrito();
             renderizarCarrito();
             guardarCarritoLocal();
