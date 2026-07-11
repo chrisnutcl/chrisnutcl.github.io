@@ -55,7 +55,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="style.css?v=4">
+    <link rel="stylesheet" href="style.css?v=5">
 
     <!-- Aplica el tema guardado (claro/oscuro) antes de pintar la página, para evitar el "parpadeo" -->
     <script>
@@ -72,12 +72,31 @@
 <body>
 
     <div id="pantalla-carga">
+        <div class="decoracion-flotante-loader" aria-hidden="true">
+            <span class="miga-flotante miga-1">🌾</span>
+            <span class="miga-flotante miga-2">✨</span>
+            <span class="miga-flotante miga-3">🥐</span>
+            <span class="miga-flotante miga-4">✨</span>
+            <span class="miga-flotante miga-5">🥖</span>
+        </div>
         <img src="logo.png" alt="" class="loader-logo">
         <div class="loader-spinner"></div>
-        <span class="loader-texto">Horneando la página...</span>
+        <span class="loader-texto">Horneando la página<span class="puntos-suspensivos"><span>.</span><span>.</span><span>.</span></span></span>
     </div>
 
     <header id="inicio" class="header-principal">
+        <div class="decoracion-flotante-header" aria-hidden="true">
+            <span class="elemento-flotante ef-1">🌾</span>
+            <span class="elemento-flotante ef-2">✨</span>
+            <span class="elemento-flotante ef-3">🥐</span>
+            <span class="elemento-flotante ef-4">✨</span>
+            <span class="elemento-flotante ef-5">🥖</span>
+            <svg class="elemento-flotante ef-6 rodillo-flotante" viewBox="0 0 64 24" aria-hidden="true">
+                <rect x="14" y="6" width="36" height="12" rx="6" fill="currentColor"></rect>
+                <rect x="2" y="9" width="12" height="6" rx="3" fill="currentColor"></rect>
+                <rect x="50" y="9" width="12" height="6" rx="3" fill="currentColor"></rect>
+            </svg>
+        </div>
         <div class="contenedor-marca-header">
             <a href="https://www.instagram.com/chrisnutcl/" target="_blank" rel="noopener">
                 <img src="logo.png" alt="Logo Chrisnut - Panadería y dulzura" class="logo">
@@ -1474,6 +1493,58 @@
         renderizarCarrito();
         guardarCarritoLocal();
         guardarCarritoEnFirestore();
+    }
+
+    // Pequeña animación de "vuela al carrito": clona la foto del producto y
+    // la anima volando desde la tarjeta hasta el ícono del carrito (el
+    // flotante si está visible, o el del menú si no). Puramente decorativo:
+    // si algo falla, simplemente no se ve la animación y el resto sigue igual.
+    function volarAlCarrito(tarjetaOrigen) {
+        try {
+            if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+            const imagenOrigen = tarjetaOrigen.querySelector(".imagen-producto");
+            if (!imagenOrigen) return;
+
+            const botonFlotante = document.getElementById("boton-carrito-flotante");
+            const destino = (botonFlotante && botonFlotante.offsetParent !== null) ? botonFlotante : document.getElementById("boton-carrito");
+            if (!destino) return;
+
+            const rectOrigen = imagenOrigen.getBoundingClientRect();
+            const rectDestino = destino.getBoundingClientRect();
+
+            const clon = imagenOrigen.cloneNode(true);
+            clon.className = "clon-volador-carrito";
+            clon.style.left = rectOrigen.left + "px";
+            clon.style.top = rectOrigen.top + "px";
+            clon.style.width = rectOrigen.width + "px";
+            clon.style.height = rectOrigen.height + "px";
+            document.body.appendChild(clon);
+
+            const desplazamientoX = (rectDestino.left + rectDestino.width / 2) - (rectOrigen.left + rectOrigen.width / 2);
+            const desplazamientoY = (rectDestino.top + rectDestino.height / 2) - (rectOrigen.top + rectOrigen.height / 2);
+
+            requestAnimationFrame(() => {
+                clon.style.setProperty("--vuelo-x", desplazamientoX + "px");
+                clon.style.setProperty("--vuelo-y", desplazamientoY + "px");
+                clon.classList.add("volando");
+            });
+
+            let yaLimpiado = false;
+            const limpiarClon = () => {
+                if (yaLimpiado) return;
+                yaLimpiado = true;
+                clon.remove();
+                destino.classList.remove("pulso-destino-carrito");
+                void destino.offsetWidth; // reinicia la animación del pulso
+                destino.classList.add("pulso-destino-carrito");
+                setTimeout(() => destino.classList.remove("pulso-destino-carrito"), 450);
+            };
+            clon.addEventListener("transitionend", limpiarClon, { once: true });
+            setTimeout(limpiarClon, 900); // respaldo por si "transitionend" no dispara
+        } catch (error) {
+            console.error("No se pudo animar el vuelo al carrito:", error);
+        }
     }
 
     function cambiarCantidad(nombre, delta) {
@@ -3718,6 +3789,7 @@
                     const nombre = tarjeta.dataset.nombre;
                     const precio = parseInt(tarjeta.dataset.precio, 10);
                     agregarAlCarrito(nombre, precio);
+                    volarAlCarrito(tarjeta);
 
                     // Pequeño efecto visual de confirmación
                     const textoOriginal = botonCarrito.dataset.textoOriginal || botonCarrito.textContent;

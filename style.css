@@ -179,10 +179,53 @@ main > section {
 
 .contenedor-marca-header {
     position: relative;
+    z-index: 1;
     display: inline-flex;
     flex-direction: column;
     align-items: center;
     animation: aparecer-marca-header 0.7s ease-out both;
+}
+
+/* Trigo, harina, croissants y un rodillo flotando muy sutilmente detrás
+   del logo, contenidos dentro del banner gracias a su "overflow: hidden". */
+.decoracion-flotante-header {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.elemento-flotante {
+    position: absolute;
+    top: 100%;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 1.3rem;
+    opacity: 0;
+    animation: flotar-elemento-header linear infinite;
+}
+
+.rodillo-flotante {
+    width: 34px;
+    height: auto;
+}
+
+.ef-1 { left: 8%;  font-size: 1.1rem; animation-duration: 14s; animation-delay: 0s; }
+.ef-2 { left: 24%; font-size: 0.7rem; animation-duration: 11s; animation-delay: 3s; }
+.ef-3 { left: 42%; font-size: 1.3rem; animation-duration: 16s; animation-delay: 6s; }
+.ef-4 { left: 60%; font-size: 0.7rem; animation-duration: 10s; animation-delay: 1.5s; }
+.ef-5 { left: 76%; font-size: 1.2rem; animation-duration: 15s; animation-delay: 4.5s; }
+.ef-6 { left: 90%; animation-duration: 13s; animation-delay: 8s; }
+
+@keyframes flotar-elemento-header {
+    0%   { transform: translateY(0) rotate(0deg); opacity: 0; }
+    12%  { opacity: 0.5; }
+    88%  { opacity: 0.35; }
+    100% { transform: translateY(-170px) rotate(35deg); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .elemento-flotante { animation: none; display: none; }
 }
 
 @keyframes aparecer-marca-header {
@@ -594,6 +637,28 @@ main > section {
 
 .boton-agregar-carrito.animar-agregado {
     animation: destello-agregado 0.4s ease;
+}
+
+/* Foto "voladora" que se clona al agregar un producto y viaja desde la
+   tarjeta hasta el ícono del carrito (efecto "vuela al carrito"). */
+.clon-volador-carrito {
+    position: fixed;
+    margin: 0;
+    object-fit: cover;
+    border-radius: 8px;
+    pointer-events: none;
+    z-index: 5000;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+    transition: transform 0.65s cubic-bezier(0.4, 0, 0.6, 1), opacity 0.65s ease 0.15s;
+}
+
+.clon-volador-carrito.volando {
+    transform: translate(var(--vuelo-x, 0), var(--vuelo-y, 0)) scale(0.12) rotate(10deg);
+    opacity: 0.35;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .clon-volador-carrito { display: none; }
 }
 
 @keyframes destello-agregado {
@@ -1058,6 +1123,13 @@ main > section {
     border: 1px solid var(--color-borde-suave);
     border-radius: 10px;
     padding: 14px 18px;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.tarjeta-info-contacto:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+    border-color: var(--color-acento);
 }
 
 .icono-info-contacto {
@@ -1564,6 +1636,12 @@ main > section {
     width: 280px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
     box-sizing: border-box;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.tarjeta-paso:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
 }
 
 .icono-paso {
@@ -1609,6 +1687,12 @@ main > section {
     text-align: left;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
     box-sizing: border-box;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.tarjeta-testimonio:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
 }
 
 /* Botón "X" para que el admin borre una opinión ya publicada.
@@ -2309,6 +2393,23 @@ html[data-tema="oscuro"] .icono-aviso-advertencia { background: rgba(245, 158, 1
     align-items: center;
     gap: 6px;
     padding: 8px 10px;
+    transition: transform 0.2s ease;
+}
+
+.boton-carrito:hover {
+    transform: scale(1.08);
+}
+
+/* Pulso que recibe el ícono del carrito (el flotante o el del menú) justo
+   cuando "aterriza" la foto que animamos en volarAlCarrito() */
+.pulso-destino-carrito {
+    animation: pulso-destino-carrito 0.45s ease;
+}
+
+@keyframes pulso-destino-carrito {
+    0%   { transform: scale(1); }
+    35%  { transform: scale(1.22); }
+    100% { transform: scale(1); }
 }
 
 .contador-carrito {
@@ -2808,6 +2909,56 @@ html[data-tema="oscuro"] .boton-secundario-modal:hover { background-color: rgba(
     color: var(--color-texto-principal);
     font-size: 0.95rem;
     letter-spacing: 0.5px;
+    display: inline-flex;
+    align-items: baseline;
+}
+
+/* Puntos suspensivos animados al final de "Horneando la página" */
+.puntos-suspensivos {
+    display: inline-flex;
+    margin-left: 1px;
+}
+
+.puntos-suspensivos span {
+    opacity: 0.2;
+    animation: parpadeo-punto-carga 1.4s ease-in-out infinite;
+}
+
+.puntos-suspensivos span:nth-child(2) { animation-delay: 0.2s; }
+.puntos-suspensivos span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes parpadeo-punto-carga {
+    0%, 80%, 100% { opacity: 0.2; }
+    40% { opacity: 1; }
+}
+
+/* Miguitas, harina y masitas flotando de fondo mientras carga la página */
+.decoracion-flotante-loader {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.miga-flotante {
+    position: absolute;
+    bottom: -10%;
+    font-size: 1.3rem;
+    opacity: 0;
+    animation: elevarse-miga 5.5s ease-in infinite;
+}
+
+.miga-1 { left: 14%; font-size: 1.1rem; animation-duration: 5.5s; animation-delay: 0s; }
+.miga-2 { left: 32%; font-size: 0.7rem; animation-duration: 4.5s; animation-delay: 1s; }
+.miga-3 { left: 52%; font-size: 1.3rem; animation-duration: 6s;   animation-delay: 2s; }
+.miga-4 { left: 68%; font-size: 0.7rem; animation-duration: 4.8s; animation-delay: 0.5s; }
+.miga-5 { left: 84%; font-size: 1.15rem; animation-duration: 5.2s; animation-delay: 1.6s; }
+
+@keyframes elevarse-miga {
+    0%   { transform: translateY(0) rotate(0deg); opacity: 0; }
+    12%  { opacity: 0.55; }
+    85%  { opacity: 0.4; }
+    100% { transform: translateY(-220px) rotate(30deg); opacity: 0; }
 }
 
 @keyframes latidoLoader {
@@ -2816,7 +2967,7 @@ html[data-tema="oscuro"] .boton-secundario-modal:hover { background-color: rgba(
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .loader-logo, .loader-spinner { animation: none; }
+    .loader-logo, .loader-spinner, .miga-flotante, .puntos-suspensivos span { animation: none; }
 }
 
 /* ==========================================
