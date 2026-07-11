@@ -3647,56 +3647,90 @@ button {
    ESTADO DE LA TIENDA (abierta / cerrada)
    ========================================== */
 
-/* Badge chico junto al eslogan del header, visible para todos */
+/* Badge junto al eslogan del header, visible para todos. El fondo queda
+   discreto/oscuro a propósito: el protagonista es el círculo que brilla. */
 .badge-estado-tienda {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    margin-top: 6px;
-    padding: 4px 12px;
+    gap: 9px;
+    margin-top: 12px;
+    padding: 7px 16px 7px 12px;
     border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.2px;
-    background-color: rgba(255, 255, 255, 0.14);
+    font-family: 'Poppins', Arial, sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
     color: #ffffff;
-    backdrop-filter: blur(2px);
+    background-color: rgba(0, 0, 0, 0.28);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
     width: fit-content;
 }
 
 .punto-estado-tienda {
-    width: 8px;
-    height: 8px;
+    width: 11px;
+    height: 11px;
     border-radius: 50%;
-    background-color: #94a3b8;
     flex-shrink: 0;
 }
 
+.badge-estado-cargando {
+    border-color: rgba(255, 255, 255, 0.18);
+}
 .badge-estado-cargando .punto-estado-tienda {
-    background-color: #cbd5e1;
+    background-color: #cbc3b4;
+    box-shadow: 0 0 4px 1px rgba(203, 195, 180, 0.6);
     animation: parpadeoPuntoTienda 1.4s ease-in-out infinite;
 }
 
+/* Círculo verde tipo "luz de neón": degradado con brillo al centro más
+   varias capas de sombra difusa que laten, como si emitiera luz real. */
 .badge-estado-abierta {
-    background-color: rgba(34, 197, 94, 0.22);
+    border-color: rgba(34, 197, 94, 0.45);
 }
 .badge-estado-abierta .punto-estado-tienda {
-    background-color: #22c55e;
-    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6);
-    animation: latidoPuntoTiendaAbierta 1.8s ease-in-out infinite;
+    background: radial-gradient(circle at 35% 30%, #baf7cf 0%, #22c55e 55%, #15803d 100%);
+    animation: brilloPuntoAbierta 1.8s ease-in-out infinite;
 }
 
+@keyframes brilloPuntoAbierta {
+    0%, 100% {
+        box-shadow:
+            0 0 3px 1px rgba(134, 239, 172, 0.9),
+            0 0 9px 3px rgba(34, 197, 94, 0.65),
+            0 0 16px 6px rgba(34, 197, 94, 0.3);
+    }
+    50% {
+        box-shadow:
+            0 0 5px 2px rgba(134, 239, 172, 1),
+            0 0 15px 5px rgba(34, 197, 94, 0.85),
+            0 0 26px 10px rgba(34, 197, 94, 0.45);
+    }
+}
+
+/* Círculo rojo con el mismo tratamiento de luz, latiendo un poco más lento */
 .badge-estado-cerrada {
-    background-color: rgba(239, 68, 68, 0.22);
+    border-color: rgba(239, 68, 68, 0.45);
 }
 .badge-estado-cerrada .punto-estado-tienda {
-    background-color: #ef4444;
+    background: radial-gradient(circle at 35% 30%, #fecaca 0%, #ef4444 55%, #b91c1c 100%);
+    animation: brilloPuntoCerrada 2.4s ease-in-out infinite;
 }
 
-@keyframes latidoPuntoTiendaAbierta {
-    0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55); }
-    70% { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+@keyframes brilloPuntoCerrada {
+    0%, 100% {
+        box-shadow:
+            0 0 3px 1px rgba(252, 165, 165, 0.9),
+            0 0 9px 3px rgba(239, 68, 68, 0.65),
+            0 0 16px 6px rgba(239, 68, 68, 0.3);
+    }
+    50% {
+        box-shadow:
+            0 0 5px 2px rgba(252, 165, 165, 1),
+            0 0 13px 4px rgba(239, 68, 68, 0.8),
+            0 0 22px 8px rgba(239, 68, 68, 0.4);
+    }
 }
 
 @keyframes parpadeoPuntoTienda {
