@@ -66,6 +66,22 @@
             color: rgb(223, 186, 102);
         }
 
+        /* Barra "de verdad" del sitio (perfil + carrito + rayas), pero
+           solo para celular: en escritorio se sigue viendo la .nav-legal
+           de arriba, tal como estaba. */
+        .menu-legal-movil {
+            display: none;
+        }
+
+        @media (max-width: 600px) {
+            .nav-legal {
+                display: none;
+            }
+            .menu-legal-movil {
+                display: block;
+            }
+        }
+
         .contenido-legal {
             max-width: 760px;
             margin: 0 auto;
@@ -134,6 +150,53 @@
             <li><a href="index.html#como-comprar">¿Cómo Comprar?</a></li>
             <li><a href="privacidad.html">Política de Privacidad</a></li>
             <li><a href="terminos.html">Términos y Condiciones</a></li>
+        </ul>
+    </nav>
+
+    <!-- Misma barra interactiva del sitio (perfil, modo oscuro, carrito y
+         menú de 3 rayas), pero solo visible en celular. En "Iniciar sesión",
+         "Regístrate" y el carrito, como esta página no tiene los modales,
+         te lleva a index.html y ahí se abren solos (usa el # en la URL). -->
+    <nav class="menu-principal menu-legal-movil" aria-label="Menú de navegación (celular)">
+        <ul class="lista-menu">
+            <li class="item-desplegable-perfil">
+                <button id="boton-perfil-legal" class="boton-perfil" aria-label="Cuenta" aria-haspopup="true" aria-expanded="false">
+                    <svg class="icono-perfil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c0-4.42 3.58-8 8-8s8 3.58 8 8"></path></svg>
+                    <span>Hola, Inicia sesión</span>
+                    <span class="flecha-desplegable">⌄</span>
+                </button>
+                <ul id="submenu-perfil-legal" class="submenu-perfil">
+                    <li><a href="index.html#mi-cuenta">Iniciar sesión</a></li>
+                    <li><a href="index.html#mi-cuenta">Regístrate</a></li>
+                </ul>
+            </li>
+
+            <li class="item-desplegable">
+                <ul id="submenu-atajos-legal" class="submenu-atajos">
+                    <li><a href="index.html">Inicio</a></li>
+                    <li><a href="index.html#favoritos">Mis Favoritos</a></li>
+                    <li><a href="index.html#vitrina">Nuestros Productos</a></li>
+                    <li><a href="index.html#contacto">Contacto</a></li>
+                    <li><a href="index.html#como-comprar">¿Cómo Comprar?</a></li>
+                    <li><a href="index.html#testimonios">Ustedes</a></li>
+                    <li><a href="privacidad.html">Política de Privacidad</a></li>
+                    <li><a href="terminos.html">Términos y Condiciones</a></li>
+                </ul>
+            </li>
+
+            <li class="grupo-derecha">
+                <button id="boton-modo-oscuro-legal" class="boton-modo-oscuro" aria-label="Cambiar a modo oscuro" title="Cambiar tema">🌙</button>
+                <button id="boton-carrito-legal" class="boton-carrito">
+                    🛒 <span id="contador-carrito-legal" class="contador-carrito">0</span>
+                </button>
+                <button id="boton-atajos-legal" class="boton-atajos" aria-label="Abrir menú de opciones">
+                    <span class="icono-hamburguesa">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </span>
+                </button>
+            </li>
         </ul>
     </nav>
 
@@ -239,6 +302,148 @@
 
         <p class="pie-copyright">&copy; 2026 Chrisnut - Panadería & Dulzura. Todos los derechos reservados.</p>
     </footer>
+
+    <script>
+    // Comportamiento de la barra móvil (perfil, modo oscuro, carrito y rayas),
+    // igual al de index.html pero apuntando a index.html cuando hace falta
+    // un modal que esta página no tiene.
+    document.addEventListener("DOMContentLoaded", () => {
+
+        // --- Modo oscuro (mismo localStorage que el resto del sitio) ---
+        const botonModoOscuro = document.getElementById("boton-modo-oscuro-legal");
+        const CLAVE_TEMA = "chrisnut_tema";
+
+        function actualizarIconoTema() {
+            const esOscuro = document.documentElement.getAttribute("data-tema") === "oscuro";
+            botonModoOscuro.textContent = esOscuro ? "☀️" : "🌙";
+            botonModoOscuro.setAttribute("aria-label", esOscuro ? "Cambiar a modo claro" : "Cambiar a modo oscuro");
+        }
+        actualizarIconoTema();
+
+        botonModoOscuro.addEventListener("click", () => {
+            const esOscuroActual = document.documentElement.getAttribute("data-tema") === "oscuro";
+            if (esOscuroActual) {
+                document.documentElement.removeAttribute("data-tema");
+                localStorage.setItem(CLAVE_TEMA, "claro");
+            } else {
+                document.documentElement.setAttribute("data-tema", "oscuro");
+                localStorage.setItem(CLAVE_TEMA, "oscuro");
+            }
+            actualizarIconoTema();
+        });
+
+        // --- Contador del carrito (solo lectura, mismo localStorage) ---
+        try {
+            const carritoGuardado = JSON.parse(localStorage.getItem("chrisnut_carrito") || "[]");
+            const total = Array.isArray(carritoGuardado)
+                ? carritoGuardado.reduce((suma, item) => suma + (item.cantidad || 0), 0)
+                : 0;
+            document.getElementById("contador-carrito-legal").textContent = total;
+        } catch (e) {}
+
+        document.getElementById("boton-carrito-legal").addEventListener("click", () => {
+            window.location.href = "index.html#carrito";
+        });
+
+        // --- Menú de 3 rayas (atajos) ---
+        const botonAtajos = document.getElementById("boton-atajos-legal");
+        const submenuAtajos = document.getElementById("submenu-atajos-legal");
+
+        function posicionarSubmenuAtajos() {
+            const rect = botonAtajos.getBoundingClientRect();
+            submenuAtajos.style.top = `${rect.bottom}px`;
+            submenuAtajos.style.left = "auto";
+            submenuAtajos.style.right = `${window.innerWidth - rect.right}px`;
+        }
+
+        function cerrarSubmenuAtajos() {
+            submenuAtajos.classList.remove("mostrar-submenu");
+            botonAtajos.classList.remove("atajos-activo");
+        }
+
+        cerrarSubmenuAtajos();
+        window.addEventListener("pageshow", cerrarSubmenuAtajos);
+
+        botonAtajos.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const estabaAbierto = submenuAtajos.classList.contains("mostrar-submenu");
+            cerrarSubmenuPerfil();
+            if (estabaAbierto) {
+                cerrarSubmenuAtajos();
+            } else {
+                posicionarSubmenuAtajos();
+                submenuAtajos.classList.add("mostrar-submenu");
+                botonAtajos.classList.add("atajos-activo");
+            }
+        });
+
+        submenuAtajos.querySelectorAll("a").forEach(enlace => {
+            enlace.addEventListener("click", cerrarSubmenuAtajos);
+        });
+
+        document.addEventListener("click", (e) => {
+            if (!submenuAtajos.contains(e.target) && e.target !== botonAtajos) {
+                cerrarSubmenuAtajos();
+            }
+        });
+
+        window.addEventListener("scroll", cerrarSubmenuAtajos, { passive: true });
+        window.addEventListener("resize", cerrarSubmenuAtajos);
+
+        // --- Menú desplegable de perfil ("Hola, Inicia sesión") ---
+        const botonPerfil = document.getElementById("boton-perfil-legal");
+        const submenuPerfil = document.getElementById("submenu-perfil-legal");
+        let menuPerfilAbierto = false;
+
+        function posicionarSubmenuPerfil() {
+            const rect = botonPerfil.getBoundingClientRect();
+            submenuPerfil.style.top = `${rect.bottom}px`;
+            submenuPerfil.style.left = `${rect.left}px`;
+        }
+
+        function abrirSubmenuPerfil() {
+            posicionarSubmenuPerfil();
+            submenuPerfil.classList.add("mostrar-submenu");
+            botonPerfil.classList.add("atajos-activo");
+            botonPerfil.setAttribute("aria-expanded", "true");
+            menuPerfilAbierto = true;
+        }
+
+        function cerrarSubmenuPerfil() {
+            submenuPerfil.classList.remove("mostrar-submenu");
+            botonPerfil.classList.remove("atajos-activo");
+            botonPerfil.setAttribute("aria-expanded", "false");
+            menuPerfilAbierto = false;
+        }
+
+        cerrarSubmenuPerfil();
+        window.addEventListener("pageshow", cerrarSubmenuPerfil);
+
+        botonPerfil.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            cerrarSubmenuAtajos();
+            if (menuPerfilAbierto) {
+                cerrarSubmenuPerfil();
+            } else {
+                abrirSubmenuPerfil();
+            }
+        });
+
+        document.addEventListener("click", (e) => {
+            if (menuPerfilAbierto && !submenuPerfil.contains(e.target) && !botonPerfil.contains(e.target)) {
+                cerrarSubmenuPerfil();
+            }
+        });
+
+        window.addEventListener("scroll", () => {
+            if (menuPerfilAbierto) cerrarSubmenuPerfil();
+        }, { passive: true });
+        window.addEventListener("resize", () => {
+            if (menuPerfilAbierto) cerrarSubmenuPerfil();
+        });
+    });
+    </script>
 
 </body>
 </html>
