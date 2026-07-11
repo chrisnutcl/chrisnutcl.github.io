@@ -160,19 +160,19 @@
     <nav class="menu-principal menu-legal-movil" aria-label="Menú de navegación (celular)">
         <ul class="lista-menu">
             <li class="item-desplegable-perfil">
-                <button id="boton-perfil-legal" class="boton-perfil" aria-label="Cuenta" aria-haspopup="true" aria-expanded="false">
+                <button id="boton-perfil" class="boton-perfil" aria-label="Cuenta" aria-haspopup="true" aria-expanded="false">
                     <svg class="icono-perfil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c0-4.42 3.58-8 8-8s8 3.58 8 8"></path></svg>
                     <span>Hola, Inicia sesión</span>
                     <span class="flecha-desplegable">⌄</span>
                 </button>
-                <ul id="submenu-perfil-legal" class="submenu-perfil">
+                <ul id="submenu-perfil" class="submenu-perfil">
                     <li><a href="index.html#mi-cuenta">Iniciar sesión</a></li>
                     <li><a href="index.html#mi-cuenta">Regístrate</a></li>
                 </ul>
             </li>
 
             <li class="item-desplegable">
-                <ul id="submenu-atajos-legal" class="submenu-atajos">
+                <ul id="submenu-atajos" class="submenu-atajos">
                     <li><a href="index.html">Inicio</a></li>
                     <li><a href="index.html#favoritos">Mis Favoritos</a></li>
                     <li><a href="index.html#vitrina">Nuestros Productos</a></li>
@@ -185,11 +185,11 @@
             </li>
 
             <li class="grupo-derecha">
-                <button id="boton-modo-oscuro-legal" class="boton-modo-oscuro" aria-label="Cambiar a modo oscuro" title="Cambiar tema">🌙</button>
-                <button id="boton-carrito-legal" class="boton-carrito">
-                    🛒 <span id="contador-carrito-legal" class="contador-carrito">0</span>
+                <button id="boton-modo-oscuro" class="boton-modo-oscuro" aria-label="Cambiar a modo oscuro" title="Cambiar tema">🌙</button>
+                <button id="boton-carrito" class="boton-carrito">
+                    🛒 <span id="contador-carrito" class="contador-carrito">0</span>
                 </button>
-                <button id="boton-atajos-legal" class="boton-atajos" aria-label="Abrir menú de opciones">
+                <button id="boton-atajos" class="boton-atajos" aria-label="Abrir menú de opciones">
                     <span class="icono-hamburguesa">
                         <span></span>
                         <span></span>
@@ -310,7 +310,7 @@
     document.addEventListener("DOMContentLoaded", () => {
 
         // --- Modo oscuro (mismo localStorage que el resto del sitio) ---
-        const botonModoOscuro = document.getElementById("boton-modo-oscuro-legal");
+        const botonModoOscuro = document.getElementById("boton-modo-oscuro");
         const CLAVE_TEMA = "chrisnut_tema";
 
         function actualizarIconoTema() {
@@ -338,16 +338,16 @@
             const total = Array.isArray(carritoGuardado)
                 ? carritoGuardado.reduce((suma, item) => suma + (item.cantidad || 0), 0)
                 : 0;
-            document.getElementById("contador-carrito-legal").textContent = total;
+            document.getElementById("contador-carrito").textContent = total;
         } catch (e) {}
 
-        document.getElementById("boton-carrito-legal").addEventListener("click", () => {
+        document.getElementById("boton-carrito").addEventListener("click", () => {
             window.location.href = "index.html#carrito";
         });
 
         // --- Menú de 3 rayas (atajos) ---
-        const botonAtajos = document.getElementById("boton-atajos-legal");
-        const submenuAtajos = document.getElementById("submenu-atajos-legal");
+        const botonAtajos = document.getElementById("boton-atajos");
+        const submenuAtajos = document.getElementById("submenu-atajos");
 
         function posicionarSubmenuAtajos() {
             const rect = botonAtajos.getBoundingClientRect();
@@ -391,8 +391,8 @@
         window.addEventListener("resize", cerrarSubmenuAtajos);
 
         // --- Menú desplegable de perfil ("Hola, Inicia sesión") ---
-        const botonPerfil = document.getElementById("boton-perfil-legal");
-        const submenuPerfil = document.getElementById("submenu-perfil-legal");
+        const botonPerfil = document.getElementById("boton-perfil");
+        const submenuPerfil = document.getElementById("submenu-perfil");
         let menuPerfilAbierto = false;
 
         function posicionarSubmenuPerfil() {
