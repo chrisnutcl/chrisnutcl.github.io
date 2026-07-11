@@ -137,7 +137,7 @@ main > section {
 .header-principal {
     position: relative;
     text-align: center;
-    padding: 38px 20px 34px;
+    padding: 26px 20px 22px;
     background:
         radial-gradient(ellipse at center, rgba(245, 198, 107, 0.16), transparent 62%),
         radial-gradient(circle, var(--color-marron) 0%, var(--color-marron-oscuro) 120%);
@@ -216,7 +216,7 @@ main > section {
 }
 
 .logo {
-    max-width: 400px;
+    max-width: 340px;
     width: 100%;
     height: auto;
     filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.22));
