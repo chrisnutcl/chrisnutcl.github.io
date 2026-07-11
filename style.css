@@ -3643,3 +3643,216 @@ button {
         padding: 0;
     }
 }
+/* ==========================================
+   ESTADO DE LA TIENDA (abierta / cerrada)
+   ========================================== */
+
+/* Badge chico junto al eslogan del header, visible para todos */
+.badge-estado-tienda {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    background-color: rgba(255, 255, 255, 0.14);
+    color: #ffffff;
+    backdrop-filter: blur(2px);
+    width: fit-content;
+}
+
+.punto-estado-tienda {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #94a3b8;
+    flex-shrink: 0;
+}
+
+.badge-estado-cargando .punto-estado-tienda {
+    background-color: #cbd5e1;
+    animation: parpadeoPuntoTienda 1.4s ease-in-out infinite;
+}
+
+.badge-estado-abierta {
+    background-color: rgba(34, 197, 94, 0.22);
+}
+.badge-estado-abierta .punto-estado-tienda {
+    background-color: #22c55e;
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6);
+    animation: latidoPuntoTiendaAbierta 1.8s ease-in-out infinite;
+}
+
+.badge-estado-cerrada {
+    background-color: rgba(239, 68, 68, 0.22);
+}
+.badge-estado-cerrada .punto-estado-tienda {
+    background-color: #ef4444;
+}
+
+@keyframes latidoPuntoTiendaAbierta {
+    0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55); }
+    70% { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+@keyframes parpadeoPuntoTienda {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+}
+
+/* Banner ancho que aparece bajo el header solo cuando la tienda está cerrada */
+.banner-tienda-cerrada {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: linear-gradient(90deg, #7c2d12, #9a3412);
+    color: #fff7ed;
+    padding: 12px 20px;
+    text-align: center;
+    font-size: 0.92rem;
+    animation: deslizarBannerTienda 0.35s ease;
+}
+
+.banner-tienda-cerrada-icono {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.banner-tienda-cerrada p {
+    margin: 0;
+    max-width: 720px;
+}
+
+@keyframes deslizarBannerTienda {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+html[data-tema="oscuro"] .banner-tienda-cerrada {
+    background: linear-gradient(90deg, #4a1c0f, #5c2410);
+}
+
+/* Botón de "Finalizar pedido" deshabilitado por tienda cerrada */
+.boton-deshabilitado-cerrado {
+    opacity: 0.55;
+    cursor: not-allowed;
+    filter: grayscale(0.3);
+}
+
+/* --- Panel de control del admin (tarjeta) --- */
+.panel-estado-tienda-admin {
+    background-color: var(--color-fondo-alterno);
+    border: 1px solid var(--color-borde-suave);
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin-bottom: 14px;
+}
+
+.cabecera-estado-tienda-admin {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.cabecera-estado-tienda-admin h4 {
+    margin: 0 0 4px;
+    color: var(--color-titulo);
+    font-family: 'Fraunces', Georgia, serif;
+}
+
+.texto-estado-tienda-admin {
+    margin: 12px 0 0;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--color-texto-secundario);
+}
+
+.grupo-mensaje-tienda-cerrada {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.grupo-mensaje-tienda-cerrada label {
+    font-size: 0.82rem;
+    color: var(--color-texto-suave);
+}
+
+.grupo-mensaje-tienda-cerrada textarea {
+    width: 100%;
+    resize: vertical;
+    font-family: inherit;
+    font-size: 0.9rem;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--color-borde);
+    background-color: var(--color-tarjeta);
+    color: var(--color-texto-principal);
+    box-sizing: border-box;
+}
+
+.grupo-mensaje-tienda-cerrada button {
+    align-self: flex-start;
+}
+
+/* --- Interruptor tipo "switch" para abrir/cerrar la tienda --- */
+.interruptor-tienda {
+    position: relative;
+    display: inline-block;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.interruptor-tienda input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.interruptor-tienda-riel {
+    display: block;
+    width: 52px;
+    height: 28px;
+    border-radius: 999px;
+    background-color: #ef4444;
+    transition: background-color 0.25s ease;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.interruptor-tienda-perilla {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background-color: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    transition: transform 0.25s ease;
+}
+
+.interruptor-tienda input:checked + .interruptor-tienda-riel {
+    background-color: #22c55e;
+}
+
+.interruptor-tienda input:checked + .interruptor-tienda-riel .interruptor-tienda-perilla {
+    transform: translateX(24px);
+}
+
+.interruptor-tienda input:focus-visible + .interruptor-tienda-riel {
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2), 0 0 0 3px rgba(125, 79, 56, 0.35);
+}
+
+@media (max-width: 600px) {
+    .cabecera-estado-tienda-admin {
+        flex-wrap: wrap;
+    }
+}

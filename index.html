@@ -102,8 +102,20 @@
                 <img src="logo.png" alt="Logo Chrisnut - Panadería y dulzura" class="logo">
             </a>
             <p class="eslogan">Horneado a diario en Llay-Llay, Chile</p>
+            <span id="badge-estado-tienda" class="badge-estado-tienda badge-estado-cargando">
+                <span class="punto-estado-tienda"></span>
+                <span id="texto-estado-tienda">Consultando estado…</span>
+            </span>
         </div>
     </header>
+
+    <!-- Aviso que aparece solo cuando el admin cierra la tienda. Se actualiza
+         en vivo para todas las visitas (con o sin sesión) apenas cambia el
+         estado en Firestore. -->
+    <div id="banner-tienda-cerrada" class="banner-tienda-cerrada" style="display:none;" role="status">
+        <span class="banner-tienda-cerrada-icono">🔒</span>
+        <p id="banner-tienda-cerrada-texto">Por ahora estamos cerrados. ¡Vuelve pronto!</p>
+    </div>
 
     <nav class="menu-principal">
         <ul id="lista-menu" class="lista-menu">
@@ -597,6 +609,30 @@
                 <div id="panel-admin-pedidos" class="panel-admin" style="display:none;">
                     <h3>📦 Panel de administrador</h3>
 
+                    <div class="panel-estado-tienda-admin">
+                        <div class="cabecera-estado-tienda-admin">
+                            <div>
+                                <h4>🚪 Estado de la tienda</h4>
+                                <p class="panel-admin-subtitulo">Define si los clientes pueden hacer pedidos ahora mismo.</p>
+                            </div>
+                            <label class="interruptor-tienda" for="interruptor-estado-tienda" title="Abrir o cerrar la tienda">
+                                <input type="checkbox" id="interruptor-estado-tienda" checked onchange="alternarEstadoTienda(this.checked)">
+                                <span class="interruptor-tienda-riel">
+                                    <span class="interruptor-tienda-perilla"></span>
+                                </span>
+                            </label>
+                        </div>
+                        <p id="texto-estado-tienda-admin" class="texto-estado-tienda-admin">Cargando estado actual...</p>
+
+                        <div class="grupo-mensaje-tienda-cerrada">
+                            <label for="mensaje-tienda-cerrada">Mensaje para clientes cuando esté cerrada (opcional):</label>
+                            <textarea id="mensaje-tienda-cerrada" rows="2" placeholder="Ej: Volvemos mañana a las 9:00 am 🥐"></textarea>
+                            <button type="button" class="boton-secundario-modal" onclick="guardarMensajeTiendaCerrada()">💾 Guardar mensaje</button>
+                        </div>
+                    </div>
+
+                    <hr class="separador-grupo-filtro">
+
                     <button id="boton-activar-notificaciones" class="boton-secundario-modal" onclick="activarNotificacionesAdmin()">
                         🔔 Activar notificaciones de pedidos nuevos
                     </button>
@@ -935,6 +971,119 @@
     // Bandera global: si el usuario logueado es admin, se muestra la "X" para
     // borrar opiniones ya publicadas directamente desde la sección "Ustedes".
     window._esAdminActual = false;
+
+    // ==========================================
+    // ESTADO DE LA TIENDA (abierta / cerrada)
+    // ==========================================
+    // Guardamos el estado en Firestore, en configuracion/tienda, para que
+    // cualquier visita (con o sin sesión) lo vea actualizado en vivo.
+    // ⚠️ Reglas de Firestore necesarias: LECTURA pública de la colección
+    // "configuracion" (igual que "stock"), pero ESCRITURA restringida solo a
+    // los correos de CORREOS_ADMIN.
+    let estadoTiendaAbierta = true;
+    let mensajeTiendaCerrada = "";
+    let cancelarSuscripcionEstadoTienda = null;
+
+    function suscribirEstadoTienda() {
+        if (cancelarSuscripcionEstadoTienda) return; // ya está escuchando
+        cancelarSuscripcionEstadoTienda = db.collection("configuracion").doc("tienda")
+            .onSnapshot((doc) => {
+                actualizarUIEstadoTienda(doc.exists ? doc.data() : null);
+            }, (error) => {
+                console.error("Error al escuchar el estado de la tienda: ", error);
+                actualizarUIEstadoTienda(null);
+            });
+    }
+
+    // Refresca el badge del header, el banner de "cerrado" y (si corresponde)
+    // el panel de control del admin, cada vez que cambia el documento.
+    function actualizarUIEstadoTienda(datos) {
+        // Si el documento todavía no existe, asumimos "abierta" por defecto.
+        const abierta = datos ? datos.abierta !== false : true;
+        const mensaje = (datos && datos.mensaje) ? datos.mensaje : "";
+
+        estadoTiendaAbierta = abierta;
+        mensajeTiendaCerrada = mensaje;
+
+        const badge = document.getElementById("badge-estado-tienda");
+        const textoBadge = document.getElementById("texto-estado-tienda");
+        if (badge && textoBadge) {
+            badge.classList.remove("badge-estado-cargando", "badge-estado-abierta", "badge-estado-cerrada");
+            badge.classList.add(abierta ? "badge-estado-abierta" : "badge-estado-cerrada");
+            textoBadge.textContent = abierta ? "Abierto ahora" : "Cerrado por ahora";
+        }
+
+        const banner = document.getElementById("banner-tienda-cerrada");
+        const textoBanner = document.getElementById("banner-tienda-cerrada-texto");
+        if (banner && textoBanner) {
+            if (abierta) {
+                banner.style.display = "none";
+            } else {
+                textoBanner.textContent = mensaje || "Por ahora no estamos recibiendo pedidos nuevos. Puedes seguir mirando la vitrina, ¡vuelve pronto!";
+                banner.style.display = "flex";
+            }
+        }
+
+        // Panel de control (solo visible/relevante para el admin)
+        const interruptor = document.getElementById("interruptor-estado-tienda");
+        const textoAdmin = document.getElementById("texto-estado-tienda-admin");
+        const inputMensaje = document.getElementById("mensaje-tienda-cerrada");
+        if (interruptor) interruptor.checked = abierta;
+        if (textoAdmin) {
+            textoAdmin.textContent = abierta
+                ? "🟢 La tienda está abierta: los clientes pueden hacer pedidos con normalidad."
+                : "🔴 La tienda está cerrada: los clientes verán un aviso y no podrán finalizar pedidos.";
+        }
+        // No pisamos lo que el admin está escribiendo si el campo está enfocado
+        if (inputMensaje && document.activeElement !== inputMensaje) {
+            inputMensaje.value = mensaje;
+        }
+
+        actualizarBotonFinalizarPedido();
+    }
+
+    function actualizarBotonFinalizarPedido() {
+        const boton = document.getElementById("boton-finalizar-pedido");
+        if (!boton) return;
+        boton.disabled = !estadoTiendaAbierta;
+        boton.classList.toggle("boton-deshabilitado-cerrado", !estadoTiendaAbierta);
+        boton.title = estadoTiendaAbierta ? "" : "La tienda está cerrada por ahora";
+    }
+
+    // Solo el admin puede tocar el interruptor (el checkbox está oculto para
+    // cualquier otro usuario, ya que vive dentro de panel-admin-pedidos).
+    async function alternarEstadoTienda(abierta) {
+        if (!window._esAdminActual) return;
+        const interruptor = document.getElementById("interruptor-estado-tienda");
+        try {
+            await db.collection("configuracion").doc("tienda").set({
+                abierta: abierta,
+                mensaje: mensajeTiendaCerrada || "",
+                actualizadoEn: new Date()
+            }, { merge: true });
+            mostrarAviso(abierta ? "✅ La tienda ahora está abierta para pedidos." : "🔒 La tienda ahora está cerrada para pedidos.", "exito");
+        } catch (error) {
+            console.error("Error al cambiar el estado de la tienda: ", error);
+            mostrarAviso("No se pudo actualizar el estado de la tienda. Intenta de nuevo.", "error");
+            if (interruptor) interruptor.checked = estadoTiendaAbierta; // revertimos el visual si falló
+        }
+    }
+
+    async function guardarMensajeTiendaCerrada() {
+        if (!window._esAdminActual) return;
+        const input = document.getElementById("mensaje-tienda-cerrada");
+        const mensaje = ((input && input.value) || "").trim();
+        try {
+            await db.collection("configuracion").doc("tienda").set({
+                mensaje: mensaje,
+                actualizadoEn: new Date()
+            }, { merge: true });
+            mostrarAviso("Mensaje guardado. Se mostrará a los clientes cuando la tienda esté cerrada.", "exito");
+        } catch (error) {
+            console.error("Error al guardar el mensaje de tienda cerrada: ", error);
+            mostrarAviso("No se pudo guardar el mensaje. Intenta de nuevo.", "error");
+        }
+    }
 
     function abrirModal() {
         document.getElementById('modal-testimonio').style.display = 'flex';
@@ -1882,6 +2031,11 @@
     }
 
     async function enviarPedidoWhatsapp() {
+        if (!estadoTiendaAbierta) {
+            mostrarAviso(mensajeTiendaCerrada || "Por ahora estamos cerrados y no podemos recibir pedidos nuevos. ¡Vuelve pronto!", "advertencia");
+            return;
+        }
+
         if (carrito.length === 0) {
             mostrarAviso("Tu carrito está vacío. Agrega algún producto antes de enviar tu pedido.", "advertencia");
             return;
@@ -3729,6 +3883,11 @@
         // LECTURA pública de la colección "stock" (la escritura puede
         // seguir restringida solo al admin).
         suscribirStockAdmin();
+
+        // Igual que el stock, el estado de la tienda (abierta/cerrada) se
+        // escucha para toda visita, así el badge y el aviso de "cerrado"
+        // aparecen también para quien no tiene sesión iniciada.
+        suscribirEstadoTienda();
 
         // Formulario del panel admin para agregar un producto nuevo
         const formularioNuevoProducto = document.getElementById("formulario-nuevo-producto");
