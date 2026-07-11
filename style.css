@@ -311,7 +311,15 @@ main > section {
 }
 
 .submenu-perfil {
-    display: none;
+    /* "!important" es necesario aquí: sin esto, la regla ".menu-principal ul"
+       (que le pone display:flex a TODOS los <ul> dentro del menú, para
+       acomodar los ítems de la barra) le gana en especificidad CSS a esta
+       regla y el submenú de perfil queda con display:flex para siempre,
+       aunque le quitemos la clase "mostrar-submenu" por JS. Por eso, al
+       tocar "Hola, Inicia sesión" una segunda vez, no se cerraba: seguía
+       con display:flex de igual forma, solo que "invisible" hasta la
+       primera vez que se abría y quedaba con una posición ya calculada. */
+    display: none !important;
     position: fixed;
     flex-direction: column;
     list-style: none;
@@ -325,7 +333,7 @@ main > section {
 }
 
 .submenu-perfil.mostrar-submenu {
-    display: flex;
+    display: flex !important;
 }
 
 .submenu-perfil li {
