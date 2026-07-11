@@ -4031,14 +4031,14 @@
 
         function abrirSubmenuPerfil() {
             posicionarSubmenuPerfil();
-            submenuPerfil.style.display = "flex";
+            submenuPerfil.classList.add("mostrar-submenu");
             botonPerfil.classList.add("atajos-activo");
             botonPerfil.setAttribute("aria-expanded", "true");
             menuPerfilAbierto = true;
         }
 
         function cerrarSubmenuPerfil() {
-            submenuPerfil.style.display = "none";
+            submenuPerfil.classList.remove("mostrar-submenu");
             botonPerfil.classList.remove("atajos-activo");
             botonPerfil.setAttribute("aria-expanded", "false");
             menuPerfilAbierto = false;
