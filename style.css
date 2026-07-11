@@ -1213,6 +1213,17 @@ main > section {
     margin-left: 4px;
 }
 
+/* En móvil, el footer de "Enlaces" se simplifica: solo se muestran
+   Contacto, Política de Privacidad y Términos y Condiciones, ya que
+   Inicio, Nuestros Productos y ¿Cómo Comprar? quedan redundantes con
+   el menú principal que el usuario ya usó para llegar hasta el pie
+   de página. */
+@media (max-width: 600px) {
+    .pie-enlaces .enlace-oculto-movil {
+        display: none;
+    }
+}
+
 .pie-social {
     flex: 1 1 180px;
 }
