@@ -3732,6 +3732,108 @@ html[data-tema="oscuro"] .banner-tienda-cerrada {
     background: linear-gradient(90deg, #4a1c0f, #5c2410);
 }
 
+/* Banner ancho, bajo el header, que invita a unirse al canal de WhatsApp
+   a cambio de un 15% de descuento. */
+.banner-promo-whatsapp {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: linear-gradient(90deg, #1f6b3a, #25a24a);
+    color: #f0fff4;
+    padding: 12px 44px 12px 20px;
+    text-align: center;
+    font-size: 0.92rem;
+    position: relative;
+    animation: deslizarBannerTienda 0.35s ease;
+}
+
+.banner-promo-whatsapp-icono {
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+
+.banner-promo-whatsapp-texto {
+    margin: 0;
+    max-width: 620px;
+}
+
+.banner-promo-whatsapp-texto strong {
+    font-weight: 700;
+}
+
+.banner-promo-whatsapp-boton {
+    flex-shrink: 0;
+    background: #ffffff;
+    color: #1f6b3a;
+    font-weight: 600;
+    font-size: 0.88rem;
+    padding: 7px 16px;
+    border-radius: 999px;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.banner-promo-whatsapp-boton:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.banner-promo-whatsapp-cerrar {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: #f0fff4;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 6px;
+    opacity: 0.85;
+}
+
+.banner-promo-whatsapp-cerrar:hover {
+    opacity: 1;
+}
+
+html[data-tema="oscuro"] .banner-promo-whatsapp {
+    background: linear-gradient(90deg, #123d21, #175c2c);
+}
+
+html[data-tema="oscuro"] .banner-promo-whatsapp-boton {
+    background: #0f2f1a;
+    color: #7be6a0;
+}
+
+/* Tarjeta de "Canal de WhatsApp" dentro de la sección de Contacto */
+.tarjeta-info-contacto-promo {
+    border: 1px dashed var(--color-dorado);
+}
+
+.etiqueta-descuento-promo {
+    display: inline-block;
+    background: var(--color-dorado);
+    color: #4a2e0f;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 1px 8px;
+    border-radius: 999px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+.nota-info-contacto {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--color-texto-suave, inherit);
+    opacity: 0.85;
+    margin-top: 2px;
+}
+
 /* Botón de "Finalizar pedido" deshabilitado por tienda cerrada */
 .boton-deshabilitado-cerrado {
     opacity: 0.55;

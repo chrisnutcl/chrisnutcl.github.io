@@ -117,6 +117,20 @@
         <p id="banner-tienda-cerrada-texto">Por ahora estamos cerrados. ¡Vuelve pronto!</p>
     </div>
 
+    <!-- Anuncio promocional: invita a unirse al canal de WhatsApp a cambio de un 15% de descuento.
+         Se puede cerrar con la "✕" y esa preferencia se recuerda (localStorage) para no
+         volver a mostrarlo en cada visita del mismo dispositivo. -->
+    <div id="banner-promo-whatsapp" class="banner-promo-whatsapp" role="status">
+        <span class="banner-promo-whatsapp-icono">🎁</span>
+        <p class="banner-promo-whatsapp-texto">
+            <strong>¡15% de descuento!</strong> Únete a nuestro canal de WhatsApp y envíanos una captura de pantalla mostrando que lo seguiste para obtener tu descuento.
+        </p>
+        <a href="https://whatsapp.com/channel/0029VbCkS8j3WHTSRKpUKN0X" target="_blank" rel="noopener" class="banner-promo-whatsapp-boton">
+            Unirme al canal
+        </a>
+        <button type="button" id="boton-cerrar-banner-promo" class="banner-promo-whatsapp-cerrar" aria-label="Cerrar anuncio">✕</button>
+    </div>
+
     <nav class="menu-principal">
         <ul id="lista-menu" class="lista-menu">
             <li class="item-desplegable-perfil">
@@ -273,6 +287,15 @@
                     <div class="texto-info-contacto">
                         <strong>Teléfono</strong>
                         <a href="tel:+56955395216">+56 9 5539 5216</a>
+                    </div>
+                </div>
+
+                <div class="tarjeta-info-contacto tarjeta-info-contacto-promo">
+                    <div class="icono-info-contacto">🎁</div>
+                    <div class="texto-info-contacto">
+                        <strong>Canal de WhatsApp <span class="etiqueta-descuento-promo">-15%</span></strong>
+                        <a href="https://whatsapp.com/channel/0029VbCkS8j3WHTSRKpUKN0X" target="_blank" rel="noopener">Únete al canal</a>
+                        <span class="nota-info-contacto">Envíanos una captura de que lo seguiste y te damos tu 15% de descuento</span>
                     </div>
                 </div>
             </div>
@@ -3851,6 +3874,17 @@
         const contenedor = document.querySelector(".contenedor-testimonios");
         const formulario = document.getElementById("formulario-nuevo-testimonio");
         const formularioContacto = document.getElementById("formulario-contacto");
+
+        // --- Banner promocional del canal de WhatsApp (15% dcto) ---
+        // Se oculta solo para esta vista de la página: si recargan o vuelven
+        // a entrar más tarde, el anuncio vuelve a aparecer.
+        const botonCerrarBannerPromo = document.getElementById("boton-cerrar-banner-promo");
+        if (botonCerrarBannerPromo) {
+            botonCerrarBannerPromo.addEventListener("click", () => {
+                const banner = document.getElementById("banner-promo-whatsapp");
+                if (banner) banner.style.display = "none";
+            });
+        }
 
         // --- Modo oscuro ---
         const botonModoOscuro = document.getElementById("boton-modo-oscuro");
