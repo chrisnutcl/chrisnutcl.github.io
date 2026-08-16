@@ -631,13 +631,27 @@
                                 Usar horario automático (abre y cierra sola)
                             </label>
                             <div id="campos-horario-tienda" class="campos-horario-tienda" style="display:none;">
-                                <div class="campo-horario-tienda">
-                                    <label for="hora-apertura-tienda">Abre a las</label>
-                                    <input type="time" id="hora-apertura-tienda" value="09:00">
+                                <div class="fila-horas-tienda">
+                                    <div class="campo-horario-tienda">
+                                        <label for="hora-apertura-tienda">Abre a las</label>
+                                        <input type="time" id="hora-apertura-tienda" value="09:00">
+                                    </div>
+                                    <div class="campo-horario-tienda">
+                                        <label for="hora-cierre-tienda">Cierra a las</label>
+                                        <input type="time" id="hora-cierre-tienda" value="19:00">
+                                    </div>
                                 </div>
-                                <div class="campo-horario-tienda">
-                                    <label for="hora-cierre-tienda">Cierra a las</label>
-                                    <input type="time" id="hora-cierre-tienda" value="19:00">
+                                <div class="fila-dias-tienda">
+                                    <span class="etiqueta-dias-tienda">Días abiertos</span>
+                                    <div class="checklist-dias-tienda">
+                                        <label class="opcion-etiqueta-admin"><input type="checkbox" class="checkbox-dia-tienda" value="1"> Lun</label>
+                                        <label class="opcion-etiqueta-admin"><input type="checkbox" class="checkbox-dia-tienda" value="2"> Mar</label>
+                                        <label class="opcion-etiqueta-admin"><input type="checkbox" class="checkbox-dia-tienda" value="3"> Mié</label>
+                                        <label class="opcion-etiqueta-admin"><input type="checkbox" class="checkbox-dia-tienda" value="4"> Jue</label>
+                                        <label class="opcion-etiqueta-admin"><input type="checkbox" class="checkbox-dia-tienda" value="5"> Vie</label>
+                                        <label class="opcion-etiqueta-admin"><input type="checkbox" class="checkbox-dia-tienda" value="6"> Sáb</label>
+                                        <label class="opcion-etiqueta-admin"><input type="checkbox" class="checkbox-dia-tienda" value="0"> Dom</label>
+                                    </div>
                                 </div>
                                 <button type="button" class="boton-secundario-modal" onclick="guardarHorarioTienda()">💾 Guardar horario</button>
                             </div>
@@ -1015,9 +1029,12 @@
     let usarHorarioTienda = false;
     let horaAperturaTienda = "09:00";
     let horaCierreTienda = "19:00";
+    let diasAbiertosTienda = [0, 1, 2, 3, 4, 5, 6]; // 0=domingo ... 6=sábado (por defecto, todos)
     let ultimosDatosEstadoTienda = null;
     let cancelarSuscripcionEstadoTienda = null;
     let intervaloRelojTienda = null;
+
+    const NOMBRES_DIAS_TIENDA = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
     function suscribirEstadoTienda() {
         if (cancelarSuscripcionEstadoTienda) return; // ya está escuchando
@@ -1030,9 +1047,9 @@
                 actualizarUIEstadoTienda(null);
             });
 
-        // El horario automático depende de la hora actual, no de que cambie
-        // el documento en Firestore, así que revisamos el reloj cada minuto
-        // para abrir/cerrar sola apenas se cumple la hora configurada.
+        // El horario automático depende de la hora (y el día) actual, no de
+        // que cambie el documento en Firestore, así que revisamos el reloj
+        // cada minuto para abrir/cerrar sola apenas se cumple lo configurado.
         if (!intervaloRelojTienda) {
             intervaloRelojTienda = setInterval(() => {
                 if (usarHorarioTienda) actualizarUIEstadoTienda(ultimosDatosEstadoTienda);
@@ -1052,6 +1069,24 @@
         }).format(new Date());
     }
 
+    // Día de la semana actual en Chile como número (0=domingo ... 6=sábado,
+    // igual que Date.getDay()), también fijo a "America/Santiago".
+    function obtenerDiaActualChile() {
+        const nombreDiaCorto = new Intl.DateTimeFormat("en-US", {
+            weekday: "short",
+            timeZone: "America/Santiago"
+        }).format(new Date());
+        const mapa = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+        return mapa[nombreDiaCorto] ?? new Date().getDay();
+    }
+
+    // Convierte [0,1,2] en un texto legible como "Dom, Lun, Mar".
+    function formatearDiasTienda(dias) {
+        if (!Array.isArray(dias) || dias.length === 0) return "ningún día";
+        if (dias.length === 7) return "todos los días";
+        return [...dias].sort((a, b) => a - b).map(d => NOMBRES_DIAS_TIENDA[d]).join(", ");
+    }
+
     // true si "horaActual" cae dentro de [apertura, cierre). Soporta
     // horarios que cruzan la medianoche (ej: abre 20:00, cierra 02:00).
     function horaDentroDeRangoTienda(horaActual, apertura, cierre) {
@@ -1069,17 +1104,19 @@
         const horario = !!(datos && datos.usarHorario);
         const apertura = (datos && datos.horaApertura) || "09:00";
         const cierre = (datos && datos.horaCierre) || "19:00";
+        const dias = (datos && Array.isArray(datos.diasAbiertos)) ? datos.diasAbiertos : [0, 1, 2, 3, 4, 5, 6];
         const mensaje = (datos && datos.mensaje) ? datos.mensaje : "";
 
         usarHorarioTienda = horario;
         horaAperturaTienda = apertura;
         horaCierreTienda = cierre;
+        diasAbiertosTienda = dias;
         mensajeTiendaCerrada = mensaje;
 
         // Si el documento todavía no existe y no hay horario, asumimos
         // "abierta" por defecto.
         const abierta = horario
-            ? horaDentroDeRangoTienda(obtenerHoraActualChile(), apertura, cierre)
+            ? (dias.includes(obtenerDiaActualChile()) && horaDentroDeRangoTienda(obtenerHoraActualChile(), apertura, cierre))
             : (datos ? datos.abierta !== false : true);
 
         estadoTiendaAbierta = abierta;
@@ -1114,8 +1151,8 @@
         if (textoAdmin) {
             if (horario) {
                 textoAdmin.textContent = abierta
-                    ? `🟢 Abierta automáticamente (horario ${apertura} a ${cierre}).`
-                    : `🔴 Cerrada automáticamente (fuera del horario ${apertura} a ${cierre}).`;
+                    ? `🟢 Abierta automáticamente (${apertura} a ${cierre}, ${formatearDiasTienda(dias)}).`
+                    : `🔴 Cerrada automáticamente (fuera del horario o día configurado: ${apertura} a ${cierre}, ${formatearDiasTienda(dias)}).`;
             } else {
                 textoAdmin.textContent = abierta
                     ? "🟢 La tienda está abierta: los clientes pueden hacer pedidos con normalidad."
@@ -1136,6 +1173,11 @@
         if (camposHorario) camposHorario.style.display = horario ? "flex" : "none";
         if (inputApertura && document.activeElement !== inputApertura) inputApertura.value = apertura;
         if (inputCierre && document.activeElement !== inputCierre) inputCierre.value = cierre;
+        document.querySelectorAll(".checkbox-dia-tienda").forEach((casilla) => {
+            if (document.activeElement !== casilla) {
+                casilla.checked = dias.includes(parseInt(casilla.value, 10));
+            }
+        });
         if (textoHorarioAdmin) {
             textoHorarioAdmin.textContent = horario
                 ? `El interruptor de arriba queda controlado por este horario. Desmarca la casilla para volver a manejarlo a mano.`
@@ -1180,7 +1222,7 @@
     }
 
     // Activa o desactiva el horario automático. Al activarlo, guarda también
-    // las horas que estén escritas en los campos (o las que ya había) para
+    // las horas y los días marcados en los campos (o los que ya había) para
     // que el cálculo funcione de inmediato.
     async function alternarUsoHorarioTienda(usar) {
         if (!window._esAdminActual) return;
@@ -1189,17 +1231,19 @@
         const inputCierre = document.getElementById("hora-cierre-tienda");
         const apertura = (inputApertura && inputApertura.value) || horaAperturaTienda || "09:00";
         const cierre = (inputCierre && inputCierre.value) || horaCierreTienda || "19:00";
+        const dias = obtenerDiasSeleccionadosTienda();
 
         try {
             await db.collection("configuracion").doc("tienda").set({
                 usarHorario: usar,
                 horaApertura: apertura,
                 horaCierre: cierre,
+                diasAbiertos: dias,
                 actualizadoEn: new Date()
             }, { merge: true });
             mostrarAviso(
                 usar
-                    ? `✅ Horario automático activado (${apertura} a ${cierre}).`
+                    ? `✅ Horario automático activado (${apertura} a ${cierre}, ${formatearDiasTienda(dias)}).`
                     : "El horario automático quedó desactivado; ahora el interruptor manual manda.",
                 "exito"
             );
@@ -1210,17 +1254,31 @@
         }
     }
 
-    // Guarda las horas de apertura/cierre y, de paso, activa el horario
-    // automático (si el admin cambió las horas es porque quiere usarlas).
+    // Lee las casillas de días tildadas en el panel admin y devuelve un
+    // arreglo de números (0=domingo ... 6=sábado).
+    function obtenerDiasSeleccionadosTienda() {
+        return Array.from(document.querySelectorAll(".checkbox-dia-tienda:checked"))
+            .map((casilla) => parseInt(casilla.value, 10));
+    }
+
+    // Guarda las horas de apertura/cierre y los días marcados, y de paso
+    // activa el horario automático (si el admin los cambió es porque quiere
+    // usarlos).
     async function guardarHorarioTienda() {
         if (!window._esAdminActual) return;
         const inputApertura = document.getElementById("hora-apertura-tienda");
         const inputCierre = document.getElementById("hora-cierre-tienda");
         const apertura = inputApertura ? inputApertura.value : "";
         const cierre = inputCierre ? inputCierre.value : "";
+        const dias = obtenerDiasSeleccionadosTienda();
 
         if (!apertura || !cierre) {
             mostrarAviso("Completa la hora de apertura y de cierre.", "advertencia");
+            return;
+        }
+
+        if (dias.length === 0) {
+            mostrarAviso("Selecciona al menos un día en que la tienda esté abierta.", "advertencia");
             return;
         }
 
@@ -1229,9 +1287,10 @@
                 usarHorario: true,
                 horaApertura: apertura,
                 horaCierre: cierre,
+                diasAbiertos: dias,
                 actualizadoEn: new Date()
             }, { merge: true });
-            mostrarAviso(`Horario guardado. La tienda abrirá y cerrará sola de ${apertura} a ${cierre}. ✅`, "exito");
+            mostrarAviso(`Horario guardado. La tienda abrirá y cerrará sola de ${apertura} a ${cierre}, ${formatearDiasTienda(dias)}. ✅`, "exito");
         } catch (error) {
             console.error("Error al guardar el horario de la tienda: ", error);
             mostrarAviso("No se pudo guardar el horario. Intenta de nuevo.", "error");

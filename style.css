@@ -3806,10 +3806,16 @@ html[data-tema="oscuro"] .banner-tienda-cerrada {
 
 .campos-horario-tienda {
     display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.fila-horas-tienda {
+    display: flex;
     flex-wrap: wrap;
     align-items: flex-end;
     gap: 12px;
-    margin-top: 10px;
 }
 
 .campo-horario-tienda {
@@ -3831,6 +3837,27 @@ html[data-tema="oscuro"] .banner-tienda-cerrada {
     border: 1px solid var(--color-borde);
     background-color: var(--color-tarjeta);
     color: var(--color-texto-principal);
+}
+
+.fila-dias-tienda {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.etiqueta-dias-tienda {
+    font-size: 0.78rem;
+    color: var(--color-texto-suave);
+}
+
+.checklist-dias-tienda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+}
+
+.checklist-dias-tienda .opcion-etiqueta-admin {
+    font-size: 0.82rem;
 }
 
 .texto-horario-tienda-admin {
