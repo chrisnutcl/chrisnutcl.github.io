@@ -625,6 +625,25 @@
                         </div>
                         <p id="texto-estado-tienda-admin" class="texto-estado-tienda-admin">Cargando estado actual...</p>
 
+                        <div class="grupo-horario-tienda">
+                            <label class="fila-checkbox-horario-tienda">
+                                <input type="checkbox" id="checkbox-usar-horario-tienda" onchange="alternarUsoHorarioTienda(this.checked)">
+                                Usar horario automático (abre y cierra sola)
+                            </label>
+                            <div id="campos-horario-tienda" class="campos-horario-tienda" style="display:none;">
+                                <div class="campo-horario-tienda">
+                                    <label for="hora-apertura-tienda">Abre a las</label>
+                                    <input type="time" id="hora-apertura-tienda" value="09:00">
+                                </div>
+                                <div class="campo-horario-tienda">
+                                    <label for="hora-cierre-tienda">Cierra a las</label>
+                                    <input type="time" id="hora-cierre-tienda" value="19:00">
+                                </div>
+                                <button type="button" class="boton-secundario-modal" onclick="guardarHorarioTienda()">💾 Guardar horario</button>
+                            </div>
+                            <p id="texto-horario-tienda-admin" class="texto-horario-tienda-admin"></p>
+                        </div>
+
                         <div class="grupo-mensaje-tienda-cerrada">
                             <label for="mensaje-tienda-cerrada">Mensaje para clientes cuando esté cerrada (opcional):</label>
                             <textarea id="mensaje-tienda-cerrada" rows="2" placeholder="Ej: Volvemos mañana a las 9:00 am 🥐"></textarea>
@@ -981,30 +1000,89 @@
     // ⚠️ Reglas de Firestore necesarias: LECTURA pública de la colección
     // "configuracion" (igual que "stock"), pero ESCRITURA restringida solo a
     // los correos de CORREOS_ADMIN.
+    //
+    // La tienda puede abrirse/cerrarse de dos formas (una u otra, no las dos
+    // a la vez):
+    //   1) Manual: el admin mueve el interruptor cuando quiera.
+    //   2) Por horario: el admin define una hora de apertura y una de cierre,
+    //      y el sitio calcula solo si está "abierta" comparando esas horas
+    //      con la hora actual en Chile (usando la zona horaria fija
+    //      "America/Santiago", para que dé lo mismo desde dónde entre cada
+    //      visita). Mientras el horario automático esté activo, el
+    //      interruptor manual queda deshabilitado.
     let estadoTiendaAbierta = true;
     let mensajeTiendaCerrada = "";
+    let usarHorarioTienda = false;
+    let horaAperturaTienda = "09:00";
+    let horaCierreTienda = "19:00";
+    let ultimosDatosEstadoTienda = null;
     let cancelarSuscripcionEstadoTienda = null;
+    let intervaloRelojTienda = null;
 
     function suscribirEstadoTienda() {
         if (cancelarSuscripcionEstadoTienda) return; // ya está escuchando
         cancelarSuscripcionEstadoTienda = db.collection("configuracion").doc("tienda")
             .onSnapshot((doc) => {
-                actualizarUIEstadoTienda(doc.exists ? doc.data() : null);
+                ultimosDatosEstadoTienda = doc.exists ? doc.data() : null;
+                actualizarUIEstadoTienda(ultimosDatosEstadoTienda);
             }, (error) => {
                 console.error("Error al escuchar el estado de la tienda: ", error);
                 actualizarUIEstadoTienda(null);
             });
+
+        // El horario automático depende de la hora actual, no de que cambie
+        // el documento en Firestore, así que revisamos el reloj cada minuto
+        // para abrir/cerrar sola apenas se cumple la hora configurada.
+        if (!intervaloRelojTienda) {
+            intervaloRelojTienda = setInterval(() => {
+                if (usarHorarioTienda) actualizarUIEstadoTienda(ultimosDatosEstadoTienda);
+            }, 60000);
+        }
+    }
+
+    // Hora actual en Chile como "HH:MM" (24 horas), fija a la zona horaria
+    // "America/Santiago" sin importar en qué huso horario esté el
+    // dispositivo de quien visita el sitio.
+    function obtenerHoraActualChile() {
+        return new Intl.DateTimeFormat("es-CL", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hourCycle: "h23",
+            timeZone: "America/Santiago"
+        }).format(new Date());
+    }
+
+    // true si "horaActual" cae dentro de [apertura, cierre). Soporta
+    // horarios que cruzan la medianoche (ej: abre 20:00, cierra 02:00).
+    function horaDentroDeRangoTienda(horaActual, apertura, cierre) {
+        if (!apertura || !cierre || apertura === cierre) return true;
+        if (apertura < cierre) {
+            return horaActual >= apertura && horaActual < cierre;
+        }
+        return horaActual >= apertura || horaActual < cierre;
     }
 
     // Refresca el badge del header, el banner de "cerrado" y (si corresponde)
-    // el panel de control del admin, cada vez que cambia el documento.
+    // el panel de control del admin, cada vez que cambia el documento o pasa
+    // el tiempo suficiente para que el horario automático cambie de estado.
     function actualizarUIEstadoTienda(datos) {
-        // Si el documento todavía no existe, asumimos "abierta" por defecto.
-        const abierta = datos ? datos.abierta !== false : true;
+        const horario = !!(datos && datos.usarHorario);
+        const apertura = (datos && datos.horaApertura) || "09:00";
+        const cierre = (datos && datos.horaCierre) || "19:00";
         const mensaje = (datos && datos.mensaje) ? datos.mensaje : "";
 
-        estadoTiendaAbierta = abierta;
+        usarHorarioTienda = horario;
+        horaAperturaTienda = apertura;
+        horaCierreTienda = cierre;
         mensajeTiendaCerrada = mensaje;
+
+        // Si el documento todavía no existe y no hay horario, asumimos
+        // "abierta" por defecto.
+        const abierta = horario
+            ? horaDentroDeRangoTienda(obtenerHoraActualChile(), apertura, cierre)
+            : (datos ? datos.abierta !== false : true);
+
+        estadoTiendaAbierta = abierta;
 
         const badge = document.getElementById("badge-estado-tienda");
         const textoBadge = document.getElementById("texto-estado-tienda");
@@ -1029,15 +1107,39 @@
         const interruptor = document.getElementById("interruptor-estado-tienda");
         const textoAdmin = document.getElementById("texto-estado-tienda-admin");
         const inputMensaje = document.getElementById("mensaje-tienda-cerrada");
-        if (interruptor) interruptor.checked = abierta;
+        if (interruptor) {
+            interruptor.checked = abierta;
+            interruptor.disabled = horario;
+        }
         if (textoAdmin) {
-            textoAdmin.textContent = abierta
-                ? "🟢 La tienda está abierta: los clientes pueden hacer pedidos con normalidad."
-                : "🔴 La tienda está cerrada: los clientes verán un aviso y no podrán finalizar pedidos.";
+            if (horario) {
+                textoAdmin.textContent = abierta
+                    ? `🟢 Abierta automáticamente (horario ${apertura} a ${cierre}).`
+                    : `🔴 Cerrada automáticamente (fuera del horario ${apertura} a ${cierre}).`;
+            } else {
+                textoAdmin.textContent = abierta
+                    ? "🟢 La tienda está abierta: los clientes pueden hacer pedidos con normalidad."
+                    : "🔴 La tienda está cerrada: los clientes verán un aviso y no podrán finalizar pedidos.";
+            }
         }
         // No pisamos lo que el admin está escribiendo si el campo está enfocado
         if (inputMensaje && document.activeElement !== inputMensaje) {
             inputMensaje.value = mensaje;
+        }
+
+        const checkboxHorario = document.getElementById("checkbox-usar-horario-tienda");
+        const camposHorario = document.getElementById("campos-horario-tienda");
+        const inputApertura = document.getElementById("hora-apertura-tienda");
+        const inputCierre = document.getElementById("hora-cierre-tienda");
+        const textoHorarioAdmin = document.getElementById("texto-horario-tienda-admin");
+        if (checkboxHorario) checkboxHorario.checked = horario;
+        if (camposHorario) camposHorario.style.display = horario ? "flex" : "none";
+        if (inputApertura && document.activeElement !== inputApertura) inputApertura.value = apertura;
+        if (inputCierre && document.activeElement !== inputCierre) inputCierre.value = cierre;
+        if (textoHorarioAdmin) {
+            textoHorarioAdmin.textContent = horario
+                ? `El interruptor de arriba queda controlado por este horario. Desmarca la casilla para volver a manejarlo a mano.`
+                : "";
         }
 
         actualizarBotonFinalizarPedido();
@@ -1053,9 +1155,16 @@
 
     // Solo el admin puede tocar el interruptor (el checkbox está oculto para
     // cualquier otro usuario, ya que vive dentro de panel-admin-pedidos).
+    // Si el horario automático está activo, el interruptor queda
+    // deshabilitado en el HTML, pero igual revisamos acá por seguridad.
     async function alternarEstadoTienda(abierta) {
         if (!window._esAdminActual) return;
         const interruptor = document.getElementById("interruptor-estado-tienda");
+        if (usarHorarioTienda) {
+            mostrarAviso("Desactiva el horario automático para controlar la tienda a mano.", "advertencia");
+            if (interruptor) interruptor.checked = estadoTiendaAbierta;
+            return;
+        }
         try {
             await db.collection("configuracion").doc("tienda").set({
                 abierta: abierta,
@@ -1067,6 +1176,65 @@
             console.error("Error al cambiar el estado de la tienda: ", error);
             mostrarAviso("No se pudo actualizar el estado de la tienda. Intenta de nuevo.", "error");
             if (interruptor) interruptor.checked = estadoTiendaAbierta; // revertimos el visual si falló
+        }
+    }
+
+    // Activa o desactiva el horario automático. Al activarlo, guarda también
+    // las horas que estén escritas en los campos (o las que ya había) para
+    // que el cálculo funcione de inmediato.
+    async function alternarUsoHorarioTienda(usar) {
+        if (!window._esAdminActual) return;
+        const checkbox = document.getElementById("checkbox-usar-horario-tienda");
+        const inputApertura = document.getElementById("hora-apertura-tienda");
+        const inputCierre = document.getElementById("hora-cierre-tienda");
+        const apertura = (inputApertura && inputApertura.value) || horaAperturaTienda || "09:00";
+        const cierre = (inputCierre && inputCierre.value) || horaCierreTienda || "19:00";
+
+        try {
+            await db.collection("configuracion").doc("tienda").set({
+                usarHorario: usar,
+                horaApertura: apertura,
+                horaCierre: cierre,
+                actualizadoEn: new Date()
+            }, { merge: true });
+            mostrarAviso(
+                usar
+                    ? `✅ Horario automático activado (${apertura} a ${cierre}).`
+                    : "El horario automático quedó desactivado; ahora el interruptor manual manda.",
+                "exito"
+            );
+        } catch (error) {
+            console.error("Error al activar/desactivar el horario automático: ", error);
+            mostrarAviso("No se pudo actualizar. Intenta de nuevo.", "error");
+            if (checkbox) checkbox.checked = usarHorarioTienda; // revertimos el visual si falló
+        }
+    }
+
+    // Guarda las horas de apertura/cierre y, de paso, activa el horario
+    // automático (si el admin cambió las horas es porque quiere usarlas).
+    async function guardarHorarioTienda() {
+        if (!window._esAdminActual) return;
+        const inputApertura = document.getElementById("hora-apertura-tienda");
+        const inputCierre = document.getElementById("hora-cierre-tienda");
+        const apertura = inputApertura ? inputApertura.value : "";
+        const cierre = inputCierre ? inputCierre.value : "";
+
+        if (!apertura || !cierre) {
+            mostrarAviso("Completa la hora de apertura y de cierre.", "advertencia");
+            return;
+        }
+
+        try {
+            await db.collection("configuracion").doc("tienda").set({
+                usarHorario: true,
+                horaApertura: apertura,
+                horaCierre: cierre,
+                actualizadoEn: new Date()
+            }, { merge: true });
+            mostrarAviso(`Horario guardado. La tienda abrirá y cerrará sola de ${apertura} a ${cierre}. ✅`, "exito");
+        } catch (error) {
+            console.error("Error al guardar el horario de la tienda: ", error);
+            mostrarAviso("No se pudo guardar el horario. Intenta de nuevo.", "error");
         }
     }
 
