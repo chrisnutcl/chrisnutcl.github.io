@@ -117,20 +117,6 @@
         <p id="banner-tienda-cerrada-texto">Por ahora estamos cerrados. ¡Vuelve pronto!</p>
     </div>
 
-    <!-- Anuncio promocional: invita a unirse al canal de WhatsApp a cambio de un 15% de descuento.
-         Se puede cerrar con la "✕" y esa preferencia se recuerda (localStorage) para no
-         volver a mostrarlo en cada visita del mismo dispositivo. -->
-    <div id="banner-promo-whatsapp" class="banner-promo-whatsapp" role="status">
-        <span class="banner-promo-whatsapp-icono">🎁</span>
-        <p class="banner-promo-whatsapp-texto">
-            <strong>¡15% de descuento!</strong> Únete a nuestro canal de WhatsApp y envíanos una captura de pantalla mostrando que lo seguiste para obtener tu descuento.
-        </p>
-        <a href="https://whatsapp.com/channel/0029VbCkS8j3WHTSRKpUKN0X" target="_blank" rel="noopener" class="banner-promo-whatsapp-boton">
-            Unirme al canal
-        </a>
-        <button type="button" id="boton-cerrar-banner-promo" class="banner-promo-whatsapp-cerrar" aria-label="Cerrar anuncio">✕</button>
-    </div>
-
     <nav class="menu-principal">
         <ul id="lista-menu" class="lista-menu">
             <li class="item-desplegable-perfil">
@@ -290,14 +276,6 @@
                     </div>
                 </div>
 
-                <div class="tarjeta-info-contacto tarjeta-info-contacto-promo">
-                    <div class="icono-info-contacto">🎁</div>
-                    <div class="texto-info-contacto">
-                        <strong>Canal de WhatsApp <span class="etiqueta-descuento-promo">-15%</span></strong>
-                        <a href="https://whatsapp.com/channel/0029VbCkS8j3WHTSRKpUKN0X" target="_blank" rel="noopener">Únete al canal</a>
-                        <span class="nota-info-contacto">Envíanos una captura de que lo seguiste y te damos tu 15% de descuento</span>
-                    </div>
-                </div>
             </div>
             
             <form id="formulario-contacto" class="formulario-contacto" action="https://formspree.io/f/mojobepa" method="POST">
@@ -2842,6 +2820,7 @@
     let cancelarSuscripcionEtiquetasAdmin = null;
     let filaEtiquetasAbierta = null; // nombre del producto cuyo panel de etiquetas está abierto
     let filaPrecioEditando = null; // nombre del producto cuyo precio se está editando
+    let filaNombreEditando = null; // nombre (original) del producto cuyo nombre se está editando
 
     function obtenerEtiquetasDisponibles() {
         return [...ETIQUETAS_BASE, ...etiquetasPersonalizadas];
@@ -3283,10 +3262,22 @@
                     <button type="button" title="Editar precio" onclick="alternarEdicionPrecioProducto('${nombreEscapado}')">✏️</button>
                 `;
 
+            const editandoNombre = filaNombreEditando === producto.nombre;
+            const nombreHtml = editandoNombre
+                ? `
+                    <input type="text" id="input-nombre-${idSeguro}" class="input-stock-admin input-nombre-admin" value="${producto.nombre.replace(/"/g, "&quot;")}">
+                    <button type="button" title="Guardar nombre" onclick="guardarNombreProducto('${nombreEscapado}', '${idSeguro}')">✅</button>
+                    <button type="button" title="Cancelar" onclick="alternarEdicionNombreProducto('${nombreEscapado}')">✕</button>
+                `
+                : `
+                    <span class="codigo-cupon-admin">${producto.nombre}</span>
+                    <button type="button" title="Editar nombre" onclick="alternarEdicionNombreProducto('${nombreEscapado}')">✏️</button>
+                `;
+
             html += `
                 <div class="fila-producto-admin">
                     <div class="fila-cupon-admin">
-                        <span class="codigo-cupon-admin">${producto.nombre}</span>
+                        ${nombreHtml}
                         ${valorPrecioHtml}
                         <button type="button" onclick="eliminarProducto('${nombreEscapado}', '${imagenEscapada}')">🗑️</button>
                     </div>
@@ -3336,6 +3327,68 @@
         } catch (error) {
             console.error("Error al actualizar el precio del producto: ", error);
             mostrarAviso("No se pudo actualizar el precio. Intenta de nuevo.", "error");
+        }
+    }
+
+    // Muestra u oculta el campo para editar el nombre de un producto
+    // (uno a la vez, igual que el panel de etiquetas y el de precio).
+    function alternarEdicionNombreProducto(nombreProducto) {
+        filaNombreEditando = filaNombreEditando === nombreProducto ? null : nombreProducto;
+        renderizarListaProductosAdmin();
+    }
+
+    // Cambia el nombre de un producto. El nombre es el ID del documento en
+    // Firestore (tanto en "productos" como en "stock"), así que renombrar
+    // significa: copiar los datos a un documento nuevo con el nombre nuevo,
+    // trasladar también el stock de hoy si existía, y recién ahí borrar los
+    // documentos antiguos. Los pedidos ya realizados guardan su propio
+    // nombre "congelado" y no se ven afectados por este cambio.
+    async function guardarNombreProducto(nombreActual, idSeguro) {
+        const input = document.getElementById(`input-nombre-${idSeguro}`);
+        const nuevoNombre = input.value.trim();
+
+        if (!nuevoNombre) {
+            mostrarAviso("Ingresa un nombre válido.", "advertencia");
+            return;
+        }
+
+        if (nuevoNombre === nombreActual) {
+            filaNombreEditando = null;
+            renderizarListaProductosAdmin();
+            return;
+        }
+
+        const yaExiste = productosCache.some(p => p.nombre === nuevoNombre);
+        if (yaExiste) {
+            mostrarAviso("Ya existe un producto con ese nombre.", "advertencia");
+            return;
+        }
+
+        try {
+            const referenciaActual = db.collection("productos").doc(nombreActual);
+            const snapshotActual = await referenciaActual.get();
+            if (!snapshotActual.exists) {
+                mostrarAviso("No se pudo encontrar el producto original.", "error");
+                return;
+            }
+
+            const datosProducto = { ...snapshotActual.data(), nombre: nuevoNombre };
+            await db.collection("productos").doc(nuevoNombre).set(datosProducto);
+            await referenciaActual.delete();
+
+            // Traslada el stock de hoy (si existía) al nombre nuevo.
+            const referenciaStockActual = db.collection("stock").doc(nombreActual);
+            const snapshotStock = await referenciaStockActual.get();
+            if (snapshotStock.exists) {
+                await db.collection("stock").doc(nuevoNombre).set(snapshotStock.data());
+                await referenciaStockActual.delete();
+            }
+
+            filaNombreEditando = null;
+            mostrarAviso("Nombre actualizado. ✅", "exito");
+        } catch (error) {
+            console.error("Error al actualizar el nombre del producto: ", error);
+            mostrarAviso("No se pudo actualizar el nombre. Intenta de nuevo.", "error");
         }
     }
 
@@ -3874,17 +3927,6 @@
         const contenedor = document.querySelector(".contenedor-testimonios");
         const formulario = document.getElementById("formulario-nuevo-testimonio");
         const formularioContacto = document.getElementById("formulario-contacto");
-
-        // --- Banner promocional del canal de WhatsApp (15% dcto) ---
-        // Se oculta solo para esta vista de la página: si recargan o vuelven
-        // a entrar más tarde, el anuncio vuelve a aparecer.
-        const botonCerrarBannerPromo = document.getElementById("boton-cerrar-banner-promo");
-        if (botonCerrarBannerPromo) {
-            botonCerrarBannerPromo.addEventListener("click", () => {
-                const banner = document.getElementById("banner-promo-whatsapp");
-                if (banner) banner.style.display = "none";
-            });
-        }
 
         // --- Modo oscuro ---
         const botonModoOscuro = document.getElementById("boton-modo-oscuro");
